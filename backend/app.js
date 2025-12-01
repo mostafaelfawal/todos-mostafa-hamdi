@@ -10,7 +10,7 @@ app.use(
     origin: [
         "https://todos-mostafa-hamdi.vercel.app",
         "https://todos-back-nine.vercel.app",
-        "http://localhost:3000"
+        "http://localhost:3001"
     ],
   })
 );
