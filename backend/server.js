@@ -5,12 +5,14 @@ import router from "./routes/taskRoutes.js";
 import mongoose from "mongoose";
 
 dotenv.config();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: "https://todos-mostafa-hamdi.vercel.app"
+}));
 app.use(express.json());
 app.use("/api/tasks", router);
 
