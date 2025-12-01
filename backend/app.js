@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: ["https://todos-mostafa-hamdi.vercel.app", "http://localhost:3001"],
+    origin: ["https://todos-mostafa-hamdi.vercel.app", "https://todos-back-nine.vercel.app"],
   })
 );
 
