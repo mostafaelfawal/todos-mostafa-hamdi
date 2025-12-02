@@ -2,12 +2,13 @@ import { TasksContext } from "@/contexts/TasksContext";
 import { useContext } from "react";
 
 export default function useProgressCalc() {
-  const { tasks, isLoading } = useContext(TasksContext);
+  // Use the raw list (allTasks) so progress reflects total tasks and updates
+  // immediately when we do optimistic updates on the cache.
+  const { allTasks } = useContext(TasksContext);
 
-  if (isLoading || !tasks) return 0; // لو البيانات لسه بتتحمل
-  if (tasks.length === 0) return 0;
+  if (!allTasks || allTasks.length === 0) return 0;
 
-  const completedTasks = tasks.filter((t) => t.completed);
-  const percentage = (completedTasks.length / tasks.length) * 100; // صححت العملية الحسابية
+  const completedTasks = allTasks.filter((t) => t.completed);
+  const percentage = (completedTasks.length / allTasks.length) * 100;
   return percentage;
 }

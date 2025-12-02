@@ -27,11 +27,14 @@ export default function TasksProvider({ children }: { children: ReactNode }) {
     }
   }, [data, filter]);
 
+  const allTasks = data ?? [];
+
   return (
     <TasksContext.Provider
       value={{
         isLoading,
         isError,
+        allTasks,
         tasks: filteredTasks,
         filter,
         setFilter,

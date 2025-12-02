@@ -15,17 +15,37 @@ export default function TodoForm() {
   // mutation لإضافة مهمة جديدة
   const addTaskMutation = useMutation({
     mutationFn: (newTask: string) => addTask(newTask),
+    // optimistic update: add the new task to the cache immediately so UI
+    // (including the progress bar) updates without waiting for the server
+    onMutate: async (newTitle: string) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      const previous = queryClient.getQueryData<any[]>(["tasks"]);
+      const tempTask = {
+        _id: `temp-${Date.now()}`,
+        title: newTitle,
+        completed: false,
+      };
+      queryClient.setQueryData(["tasks"], (old: any[] | undefined) => [
+        ...(old ?? []),
+        tempTask,
+      ]);
+      return { previous };
+    },
+    onError: (_err, _newTitle, context: any) => {
+      // rollback
+      if (context?.previous) {
+        queryClient.setQueryData(["tasks"], context.previous);
+      }
+      toast.error("Failed to add task");
+    },
     onSuccess: (data) => {
       toast.success(data.message);
       setTask(""); // تفريغ الحقل
-      // نحدث الكاش علشان تظهر المهمة الجديدة فورًا
+      // refresh from server so temporary IDs get replaced with real ones
       queryClient.invalidateQueries({
         queryKey: ["tasks"],
         refetchType: "active",
       });
-    },
-    onError: () => {
-      toast.error("Failed to add task");
     },
   });
 

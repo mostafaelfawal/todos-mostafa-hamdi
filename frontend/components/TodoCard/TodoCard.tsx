@@ -30,6 +30,21 @@ export default function TodoCard({
   const editTaskMutation = useMutation({
     mutationFn: ({ _id, title, completed }: TodoType) =>
       editTask(_id!, title, completed),
+    onMutate: async (updated: TodoType) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      const previous = queryClient.getQueryData<any[]>(["tasks"]);
+      queryClient.setQueryData(["tasks"], (old: any[] | undefined) =>
+        (old ?? []).map((t) =>
+          t._id === updated._id ? { ...t, ...updated } : t
+        )
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context: any) => {
+      if (context?.previous)
+        queryClient.setQueryData(["tasks"], context.previous);
+      toast.error("Failed to update task");
+    },
     onSuccess: (data) => {
       toast.success(data.message);
       queryClient.invalidateQueries({
@@ -37,13 +52,25 @@ export default function TodoCard({
         refetchType: "active",
       });
     },
-    onError: () => {
-      toast.error("Failed to update task");
-    },
+    // error handled above in onError with rollback
   });
 
   const deleteTaskMutation = useMutation({
     mutationFn: (id: string) => deleteTask(id),
+    // optimistic delete
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      const previous = queryClient.getQueryData<any[]>(["tasks"]);
+      queryClient.setQueryData(["tasks"], (old: any[] | undefined) =>
+        (old ?? []).filter((t) => t._id !== id)
+      );
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.previous)
+        queryClient.setQueryData(["tasks"], context.previous);
+      toast.error("Failed to delete task");
+    },
     onSuccess: (data) => {
       toast.success(data.message);
       queryClient.invalidateQueries({
@@ -51,21 +78,38 @@ export default function TodoCard({
         refetchType: "active",
       });
     },
-    onError: () => {
-      toast.error("Failed to delete task");
-    },
+    // error handled above in onError with rollback
   });
 
   const toggleTaskStateMutation = useMutation({
-    mutationFn: (id: string) => editTask(id, title, complete),
+    mutationFn: ({ id, newCompleted }: { id: string; newCompleted: boolean }) =>
+      editTask(id, title, newCompleted),
+    onMutate: async ({
+      id,
+      newCompleted,
+    }: {
+      id: string;
+      newCompleted: boolean;
+    }) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      const previous = queryClient.getQueryData<any[]>(["tasks"]);
+      queryClient.setQueryData(["tasks"], (old: any[] | undefined) =>
+        (old ?? []).map((t) =>
+          t._id === id ? { ...t, completed: newCompleted } : t
+        )
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context: any) => {
+      if (context?.previous)
+        queryClient.setQueryData(["tasks"], context.previous);
+      toast.error("Failed to update task");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["tasks"],
         refetchType: "active",
       });
-    },
-    onError: () => {
-      toast.error("Failed to update task");
     },
   });
 
@@ -85,8 +129,9 @@ export default function TodoCard({
     } else {
       playSuccess();
     }
-    setComplete(!complete);
-    toggleTaskStateMutation.mutate(_id!);
+    const next = !complete;
+    setComplete(next);
+    toggleTaskStateMutation.mutate({ id: _id!, newCompleted: next });
   }
 
   return (
